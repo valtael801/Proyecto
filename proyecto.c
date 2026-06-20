@@ -67,10 +67,7 @@ int main() {
         printf("========================================\n");
         printf("Seleccione una opción: ");
 
-        if (scanf("%9s", entrada) != 1) {
-            opcion = 0;
-            continue;
-        }
+        if (scanf(" %c", &opcion) != 1) opcion = '0';
 
         switch (opcion) {
             case 1: {
