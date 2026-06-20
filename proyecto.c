@@ -5,26 +5,31 @@
 #include "TDAs/map.h"
 #include "TDAs/heap.h"
 
+// Representa una "arista" en el grafo
 typedef struct Vuelo{
     char destino[10];
     int duracion;
     char horario[10];
 }Vuelo;
 
+// Representa "entidades" en el grafo
 typedef struct Aeropuerto{
     char codigo[10];
-    List* lVuelos;
+    List* lVuelos; // Lista de adyacencia: guarda todos los vuelos que salen de aquí
 }Aeropuerto;
 
+// Estructura principal que encapsula toda la red
 typedef struct grafoVuelo{
-    Map* aeropuertos;
+    Map* aeropuertos; // Mapa central para buscar entidades 
 }grafoVuelo;
 
+// Estructura para guardar el resultado del algoritmo de Dijkstra
 typedef struct Ruta {
     List* escalas; 
     int tiempoTotal;
 } Ruta;
 
+// Crea una nueva entidades y lo añade a la red
 void agregarAeropuerto(grafoVuelo* grafo, char* codigo) {
     Aeropuerto* nuevoAero = (Aeropuerto*)malloc(sizeof(Aeropuerto));
     strcpy(nuevoAero->codigo, codigo);
@@ -32,7 +37,7 @@ void agregarAeropuerto(grafoVuelo* grafo, char* codigo) {
     insertMap(grafo->aeropuertos, nuevoAero->codigo, nuevoAero); 
     printf("-> Aeropuerto %s registrado con éxito.\n", codigo);
 }
-
+// Crea una nueva arista dirigida entre dos vértices
 void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, char* horario) {
     Aeropuerto* aeroO = (Aeropuerto*)searchMap(grafo->aeropuertos, origen);
     if (aeroO == NULL) {
