@@ -125,8 +125,103 @@ void visualizarAeropuertos(grafoVuelo* grafo){
     }
 }
  
+void visualizarRed(grafoVuelo* grafo){
+    printf("\n========================================\n");
+    printf("        RED DE VUELOS REGISTRADOS        \n");
+    printf("========================================\n");
+
+    MapPair* parActual = map_first(grafo->aeropuertos);
+    if(parActual == NULL){
+        printf("No hay aeropuertos registrados.\n");
+        return;
+    }
+
+    while(parActual != NULL){
+        aeropuerto* aeroActual = (aeropuerto*)parActual->value;
+        printf("\nAeropuerto: %s (%s, %s)\n", aeroActual->nombre, aeroActual->ciudad, aeroActual->pais);
+        
+        vuelo* vueloActual = (vuelo*)list_first(aeroActual->lVuelos);
+        if(vueloActual == NULL) printf("- No hay vuelos registrados desde este aeropuerto.\n");
+
+        while(vueloActual != NULL){
+            int horasDuracion = vueloActual->duracion / 60;
+            int minDuracion = vueloActual->duracion % 60;
+            int horaSalidaVista = vueloActual->horaSalida / 100;
+            int minSalidaVista = vueloActual->horaSalida % 100;
+
+            printf(" - Destino: %s | Duracion: %dh %0dm | Salida: %02d:%02d hrs\n", vueloActual->destino, horasDuracion, minDuracion, horaSalidaVista, minSalidaVista);
+            vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
+        }
+        printf("----------------------------------------\n");
+        parActual = map_next(grafo->aeropuertos);
+    }
+}
+
+void mostrarSubCaso1(grafoVuelo* grafo){
+    char codigo[4];
+    char nombre[50];
+    char ciudad[50];
+    char pais[50];
  
+    printf("\n--- REGISTRAR NUEVO AEROPUERTO ---\n");
+    printf("Ingrese código IATA (3 letras ej: SCL, BOG): ");
+    scanf("%3s", codigo);   
  
+    printf("Ingrese nombre del aeropuerto: ");
+    scanf(" %49[^\n]", nombre);
+ 
+    printf("Ingrese ciudad: ");
+    scanf(" %49[^\n]", ciudad);
+ 
+    printf("Ingrese pais: ");
+    scanf(" %49[^\n]", pais);
+ 
+    agregarAeropuerto(grafo, codigo, nombre, ciudad, pais);
+}
+
+void mostrarSubCaso2(grafoVuelo* grafo){
+    char codigoB[4];
+    printf("\n--- BUSCAR AEROPUERTO ---\n");
+    printf("Ingrese codigo IATA a buscar: ");
+    scanf("%3s", codigoB);
+    buscarAeropuerto(grafo, codigoB);
+}
+
+void mostrarCaso2(grafoVuelo* grafo){
+    char origen[4];
+    char destino[4];
+    int horarioSalida = 0;
+    int duracionTotal = 0;
+ 
+    int hora = 0;
+    int minuto = 0;
+    int datosLeidos;
+                
+    printf("\n--- REGISTRAR NUEVO VUELO ---\n");
+    printf("Ingrese codigo IATA de origen: ");
+    scanf("%3s", origen);
+ 
+    printf("Ingrese codigo IATA de destino: ");
+    scanf("%3s", destino);
+ 
+    printf("Duracion ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
+    printf("Ingrese la duracion: ");
+    datosLeidos = scanf("%d:%d", &hora, &minuto);
+ 
+    if(datosLeidos == 2 || datosLeidos ==1) duracionTotal = (hora * 60) + minuto;
+    else printf("Error de formato.\n");
+ 
+    printf("Horario de salida ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
+    printf("Ingrese el horario de salida: ");
+    hora = minuto = 0;
+    datosLeidos = scanf("%d:%d", &hora, &minuto);
+ 
+    if(datosLeidos == 2 || datosLeidos ==1) horarioSalida = (hora * 100) + minuto;
+    else printf("Error de formato.\n");
+ 
+    agregarVuelo(grafo, origen, destino, duracionTotal, horarioSalida);
+}
+
 void subMenuAero(grafoVuelo* grafo){
     char subOpcion = 0;
     do{
@@ -141,33 +236,11 @@ void subMenuAero(grafoVuelo* grafo){
  
         switch (subOpcion) {
             case '1': {
-            char codigo[4];
-            char nombre[50];
-            char ciudad[50];
-            char pais[50];
- 
-            printf("\n--- REGISTRAR NUEVO AEROPUERTO ---\n");
-            printf("Ingrese código IATA (3 letras ej: SCL, BOG): ");
-            scanf("%3s", codigo);   
- 
-            printf("Ingrese nombre del aeropuerto: ");
-            scanf(" %49[^\n]", nombre);
- 
-            printf("Ingrese ciudad: ");
-            scanf(" %49[^\n]", ciudad);
- 
-            printf("Ingrese pais: ");
-            scanf(" %49[^\n]", pais);
- 
-            agregarAeropuerto(grafo, codigo, nombre, ciudad, pais);
-            break;
-        }
+                mostrarSubCaso1(grafo);
+                break;
+            }
             case '2':{
-                char codigoB[4];
-                printf("\n--- BUSCAR AEROPUERTO ---\n");
-                printf("Ingrese codigo IATA a buscar: ");
-                scanf("%3s", codigoB);
-                buscarAeropuerto(grafo, codigoB);
+                mostrarSubCaso2(grafo);
                 break;
             }
             case '3':{
@@ -209,44 +282,13 @@ int main() {
                 break;
             }
             case '2': {
-                char origen[4];
-                char destino[4];
-                int horarioSalida = 0;
-                int duracionTotal = 0;
- 
-                int hora = 0;
-                int minuto = 0;
-                int datosLeidos;
-                
-                printf("\n--- REGISTRAR NUEVO VUELO ---\n");
-                printf("Ingrese codigo IATA de origen: ");
-                scanf("%3s", origen);
- 
-                printf("Ingrese codigo IATA de destino: ");
-                scanf("%3s", destino);
- 
-                printf("Duracion ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
-                printf("Ingrese la duracion: ");
-                datosLeidos = scanf("%d:%d", &hora, &minuto);
-                while(getchar() != '\n'); 
- 
-                if(datosLeidos == 2 || datosLeidos ==1) duracionTotal = (hora * 60) + minuto;
-                else printf("Error de formato.\n");
- 
-                printf("Horario de salida ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
-                printf("Ingrese el horario de salida: ");
-                hora = minuto = 0;
-                datosLeidos = scanf("%d:%d", &hora, &minuto);
-                while(getchar() != '\n'); 
- 
-                if(datosLeidos == 2 || datosLeidos ==1) horarioSalida = (hora * 100) + minuto;
-                else printf("Error de formato.\n");
- 
-                agregarVuelo(grafo, origen, destino, duracionTotal, horarioSalida);
+                mostrarCaso2(grafo);
                 break;
             }
-            case '3':
+            case '3':{
+                visualizarRed(grafo);
                 break;
+            }
             case '4':
                 break;
             case '5':
@@ -254,7 +296,9 @@ int main() {
             default:
                 printf("\nError: Opcion no valida. Ingrese un numero del 1 al 5.\n");
         }
-        presioneTeclaParaContinuar();
+        if (opcion != '1' && opcion != '5') {
+            presioneTeclaParaContinuar();
+        }
     } while (opcion != '5');
     return 0;
 }
