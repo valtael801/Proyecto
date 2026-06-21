@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tdas/extra.h"
+#include "TDAs/extra.h"
 #include "TDAs/list.h"
 #include "TDAs/map.h"
 #include "TDAs/heap.h"
@@ -41,6 +41,13 @@ typedef struct elementoCola{
     char codigoIATA[4];
     int distanciaA;
 }elementoCola;
+
+//Estructura física auxiliar para almacenar información de cada nodo durante la ejecución de Dijkstra
+typedef struct datoDijkstra {
+    int distancia;
+    char anterior[4];
+    int visitado;
+} datoDijkstra;
  
 // Función para que el mapa sepa comparar textos
 int isEqualS(void *key1, void *key2){
@@ -257,6 +264,31 @@ void subMenuAero(grafoVuelo* grafo){
         if (subOpcion != '4') presioneTeclaParaContinuar();
     }while (subOpcion != '4');
 }
+
+void mostrarCaso4(grafoVuelo* grafo){
+    char origen[4];
+    char destino[4];
+
+    printf("\n--- BUSCAR RUTA OPTIMA ---\n");
+
+    printf("Ingrese codigo IATA de origen: ");
+    scanf("%3s", origen);
+
+    printf("Ingrese codigo IATA de destino: ");
+    scanf("%3s", destino);
+
+    aeropuerto* aeroOrigen = buscarAero(grafo, origen);
+    aeropuerto* aeroDestino = buscarAero(grafo, destino);
+
+    if(aeroOrigen == NULL || aeroDestino == NULL){
+        printf("Error: Aeropuerto no encontrado.\n");
+        return;
+    }
+
+    printf("Origen: %s\n", origen);
+    printf("Destino: %s\n", destino);
+    printf("La busqueda de ruta optima aun esta en desarrollo.\n");
+}
  
 int main() {
     grafoVuelo* grafo = (grafoVuelo*)malloc(sizeof(grafoVuelo));
@@ -289,8 +321,10 @@ int main() {
                 visualizarRed(grafo);
                 break;
             }
-            case '4':
+            case '4':{
+                mostrarCaso4(grafo);
                 break;
+            }
             case '5':
                 break;
             default:
