@@ -12,7 +12,7 @@ typedef struct vuelo{
     char origen[4];
     char destino[4];
     int duracion;
-    int horaSalida;
+    char horaSalida[6];
 }vuelo;
  
 // Representa "entidades" en el grafo
@@ -31,9 +31,9 @@ typedef struct grafoVuelo{
  
 // Estructura utilizada para empaquetar y devolver el resultado de una búsqueda
 typedef struct Ruta{
-    List* escalasVist; 
     int tiempoTotal;
-    int escalasT;
+    int escalas;
+    List* camino;
 } Ruta;
  
 // Estructura física auxiliar requerida para el algoritmo de Dijkstra
@@ -82,7 +82,7 @@ void agregarAeropuerto(grafoVuelo* grafo, char* codigo, char* nombre, char* ciud
 }
  
 // Crea una nueva arista dirigida entre dos vértices
-void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, int horaSalida){
+void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, char* horaSalida){
     aeropuerto* aeroO = buscarAero(grafo, origen);
     aeropuerto* aeroD = buscarAero(grafo, destino);
  
@@ -100,7 +100,7 @@ void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, 
     strcpy(nuevoVuelo->origen, origen);
     strcpy(nuevoVuelo->destino, destino);
     nuevoVuelo->duracion = duracion;
-    nuevoVuelo->horaSalida = horaSalida;
+    strcpy(nuevoVuelo->horaSalida, horaSalida);
     list_pushBack(aeroO->lVuelos, nuevoVuelo);
  
     printf("Vuelo registrado con exito.\n");
@@ -158,10 +158,8 @@ void visualizarRed(grafoVuelo* grafo){
         while(vueloActual != NULL){
             int horasDuracion = vueloActual->duracion / 60;
             int minDuracion = vueloActual->duracion % 60;
-            int horaSalidaVista = vueloActual->horaSalida / 100;
-            int minSalidaVista = vueloActual->horaSalida % 100;
 
-            printf(" - Destino: %s | Duracion: %dh %0dm | Salida: %02d:%02d hrs\n", vueloActual->destino, horasDuracion, minDuracion, horaSalidaVista, minSalidaVista);
+            printf(" - Destino: %s | Duracion: %dh %0dm | Salida: %s\n", vueloActual->destino, horasDuracion, minDuracion, vueloActual->horaSalida);
             vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
         }
         printf("----------------------------------------\n");
@@ -202,7 +200,7 @@ void mostrarSubCaso2(grafoVuelo* grafo){
 void mostrarCaso2(grafoVuelo* grafo){
     char origen[4];
     char destino[4];
-    int horarioSalida = 0;
+    char horarioSalida[6];
     int duracionTotal = 0;
  
     int hora = 0;
@@ -252,7 +250,7 @@ void mostrarCaso2(grafoVuelo* grafo){
         return;
     }
 
-    horarioSalida = (hora * 100) + minuto;
+    sprintf(horarioSalida, "%02d:%02d", hora, minuto);
 
     agregarVuelo(grafo, origen, destino, duracionTotal, horarioSalida);
 }
