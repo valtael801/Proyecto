@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "TDAs/extra.h"
 #include "TDAs/list.h"
 #include "TDAs/map.h"
@@ -42,13 +43,6 @@ typedef struct elementoCola{
     int distanciaA;
 }elementoCola;
 
-//Estructura física auxiliar para almacenar información de cada nodo durante la ejecución de Dijkstra
-typedef struct datoDijkstra {
-    int distancia;
-    char anterior[4];
-    int visitado;
-} datoDijkstra;
- 
 // Función para que el mapa sepa comparar textos
 int isEqualS(void *key1, void *key2){
     if (strcmp((char*)key1, (char*)key2) == 0) {
@@ -291,7 +285,141 @@ void subMenuAero(grafoVuelo* grafo){
     }while (subOpcion != '4');
 }
 
-void mostrarCaso4(grafoVuelo* grafo){
+Ruta* buscarRutaOptima(grafoVuelo* grafo, char* origen, char* destino) {
+    Map* distancias = map_create(isEqualS);
+    Map* anteriores = map_create(isEqualS);
+    Heap* colaDijkstra = heap_create();
+
+    MapPair* parActual = map_first(grafo->aeropuertos);
+
+    // Inicializar las distancias de todos los aeropuertos como infinitas.
+    while (parActual != NULL) {
+        aeropuerto* aeroActual = (aeropuerto*)parActual->value;
+
+        int* distancia = (int*)malloc(sizeof(int));
+        *distancia = INT_MAX;
+
+        map_insert(distancias, aeroActual->codigo, distancia);
+        map_insert(anteriores, aeroActual->codigo, NULL);
+
+        parActual = map_next(grafo->aeropuertos);
+    }
+
+    // La distancia desde el origen hacia sí mismo es 0.
+    MapPair* distanciaOrigen = map_search(distancias, origen);
+    *((int*)distanciaOrigen->value) = 0;
+
+    elementoCola* inicio = (elementoCola*)malloc(sizeof(elementoCola));
+    strcpy(inicio->codigoIATA, origen);
+    inicio->distanciaA = 0;
+
+    heap_push(colaDijkstra, inicio, 0);
+
+    // Mientras queden aeropuertos pendientes en la cola.
+    while (heap_top(colaDijkstra) != NULL) {
+        elementoCola* elementoActual =
+            (elementoCola*)heap_top(colaDijkstra);
+
+        heap_pop(colaDijkstra);
+
+        aeropuerto* aeroActual =
+            buscarAero(grafo, elementoActual->codigoIATA);
+
+        MapPair* distanciaActualPar =
+            map_search(distancias, elementoActual->codigoIATA);
+
+        int distanciaActual = *((int*)distanciaActualPar->value);
+
+        // Ignorar entradas antiguas de la cola.
+        if (elementoActual->distanciaA > distanciaActual) {
+            free(elementoActual);
+            continue;
+        }
+
+        vuelo* vueloActual = (vuelo*)list_first(aeroActual->lVuelos);
+
+        while (vueloActual != NULL) {
+            MapPair* distanciaDestinoPar =
+                map_search(distancias, vueloActual->destino);
+
+            int* distanciaDestino =
+                (int*)distanciaDestinoPar->value;
+
+            int nuevaDistancia =
+                distanciaActual + vueloActual->duracion;
+
+            if (nuevaDistancia < *distanciaDestino) {
+                *distanciaDestino = nuevaDistancia;
+
+                MapPair* anteriorDestino =
+                    map_search(anteriores, vueloActual->destino);
+
+                anteriorDestino->value = aeroActual->codigo;
+
+                elementoCola* nuevoElemento =
+                    (elementoCola*)malloc(sizeof(elementoCola));
+
+                strcpy(nuevoElemento->codigoIATA,
+                       vueloActual->destino);
+
+                nuevoElemento->distanciaA = nuevaDistancia;
+
+                heap_push(
+                    colaDijkstra,
+                    nuevoElemento,
+                    nuevaDistancia
+                );
+            }
+
+            vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
+        }
+
+        free(elementoActual);
+    }
+
+    MapPair* distanciaFinalPar = map_search(distancias, destino);
+    int distanciaFinal = *((int*)distanciaFinalPar->value);
+
+    if (distanciaFinal == INT_MAX) {
+        return NULL;
+    }
+
+    Ruta* ruta = (Ruta*)malloc(sizeof(Ruta));
+    ruta->camino = list_create();
+    ruta->tiempoTotal = distanciaFinal;
+
+    char* codigoActual = destino;
+
+    while (codigoActual != NULL) {
+        aeropuerto* aeroCamino = buscarAero(grafo, codigoActual);
+
+        list_pushFront(ruta->camino, aeroCamino->codigo);
+
+        if (strcmp(codigoActual, origen) == 0) {
+            break;
+        }
+
+        MapPair* anteriorActual =
+            map_search(anteriores, codigoActual);
+
+        if (anteriorActual == NULL ||
+            anteriorActual->value == NULL) {
+            return NULL;
+        }
+
+        codigoActual = (char*)anteriorActual->value;
+    }
+
+    ruta->escalas = list_size(ruta->camino) - 2;
+
+    if (ruta->escalas < 0) {
+        ruta->escalas = 0;
+    }
+
+    return ruta;
+}
+
+void mostrarCaso4(grafoVuelo* grafo) {
     char origen[4];
     char destino[4];
 
@@ -306,14 +434,37 @@ void mostrarCaso4(grafoVuelo* grafo){
     aeropuerto* aeroOrigen = buscarAero(grafo, origen);
     aeropuerto* aeroDestino = buscarAero(grafo, destino);
 
-    if(aeroOrigen == NULL || aeroDestino == NULL){
+    if (aeroOrigen == NULL || aeroDestino == NULL) {
         printf("Error: Aeropuerto no encontrado.\n");
         return;
     }
 
-    printf("Origen: %s\n", origen);
-    printf("Destino: %s\n", destino);
-    printf("La busqueda de ruta optima aun esta en desarrollo.\n");
+    Ruta* ruta = buscarRutaOptima(grafo, origen, destino);
+
+    if (ruta == NULL) {
+        printf("No existe una ruta disponible entre los aeropuertos seleccionados.\n");
+        return;
+    }
+
+    printf("\nRuta encontrada: ");
+
+    char* codigoActual = (char*)list_first(ruta->camino);
+
+    while (codigoActual != NULL) {
+        printf("%s", codigoActual);
+
+        codigoActual = (char*)list_next(ruta->camino);
+
+        if (codigoActual != NULL) {
+            printf(" -> ");
+        }
+    }
+
+    int horas = ruta->tiempoTotal / 60;
+    int minutos = ruta->tiempoTotal % 60;
+
+    printf("\nTiempo total: %dh %02dm\n", horas, minutos);
+    printf("Escalas: %d\n", ruta->escalas);
 }
 
 void subMenuVuelos(grafoVuelo* grafo){
