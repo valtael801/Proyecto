@@ -90,6 +90,11 @@ void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, 
         printf("Error: Aeropuerto NO encontrado.\n");
         return;
     }
+
+    if (duracion <= 0) {
+        printf("Error: La duracion del vuelo debe ser mayor a cero.\n");
+        return;
+    }
  
     vuelo* nuevoVuelo = (vuelo*)malloc(sizeof(vuelo));
     strcpy(nuevoVuelo->origen, origen);
@@ -217,6 +222,11 @@ void mostrarCaso2(grafoVuelo* grafo){
  
     if(datosLeidos == 2 || datosLeidos ==1) duracionTotal = (hora * 60) + minuto;
     else printf("Error de formato.\n");
+
+    if(duracionTotal <= 0) {
+        printf("Error: La duracion del vuelo debe ser mayor a cero.\n");
+        return;
+    }
  
     printf("Horario de salida ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
     printf("Ingrese el horario de salida: ");
