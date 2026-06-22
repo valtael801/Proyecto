@@ -219,9 +219,18 @@ void mostrarCaso2(grafoVuelo* grafo){
     printf("Duracion ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
     printf("Ingrese la duracion: ");
     datosLeidos = scanf("%d:%d", &hora, &minuto);
- 
-    if(datosLeidos == 2 || datosLeidos ==1) duracionTotal = (hora * 60) + minuto;
-    else printf("Error de formato.\n");
+
+    if(datosLeidos != 1 && datosLeidos != 2) {
+        printf("Error: Formato de duracion invalido.\n");
+        return;
+    }
+
+    if(hora < 0 || minuto < 0 || minuto > 59) {
+        printf("Error: Duracion invalida.\n");
+        return;
+    }
+
+    duracionTotal = (hora * 60) + minuto;
 
     if(duracionTotal <= 0) {
         printf("Error: La duracion del vuelo debe ser mayor a cero.\n");
@@ -232,10 +241,19 @@ void mostrarCaso2(grafoVuelo* grafo){
     printf("Ingrese el horario de salida: ");
     hora = minuto = 0;
     datosLeidos = scanf("%d:%d", &hora, &minuto);
- 
-    if(datosLeidos == 2 || datosLeidos ==1) horarioSalida = (hora * 100) + minuto;
-    else printf("Error de formato.\n");
- 
+
+    if(datosLeidos != 1 && datosLeidos != 2) {
+        printf("Error: Formato de horario invalido.\n");
+        return;
+    }
+
+    if(hora < 0 || hora > 23 || minuto < 0 || minuto > 59) {
+        printf("Error: Horario de salida invalido.\n");
+        return;
+    }
+
+    horarioSalida = (hora * 100) + minuto;
+
     agregarVuelo(grafo, origen, destino, duracionTotal, horarioSalida);
 }
 
