@@ -298,10 +298,10 @@ int main() {
         printf("\n========================================\n");
         printf("    SISTEMA DE GESTION DE VUELOS        \n");
         printf("========================================\n");
-        printf("1. Aeropuerto\n");
-        printf("2. Agregar Vuelo\n");
-        printf("3. Visualizar Red\n");
-        printf("4. Buscar Ruta Optima\n");
+        printf("1. Gestionar Aeropuertos\n");
+        printf("2. Gestionar Vuelos\n");
+        printf("3. Buscar Ruta Optima\n");
+        printf("4. Visualizar Red de Vuelos\n");
         printf("5. Salir\n");
         printf("========================================\n");
         printf("Seleccione una opcion: ");
@@ -318,11 +318,11 @@ int main() {
                 break;
             }
             case '3':{
-                visualizarRed(grafo);
+                mostrarCaso4(grafo);
                 break;
             }
             case '4':{
-                mostrarCaso4(grafo);
+                visualizarRed(grafo);
                 break;
             }
             case '5':
