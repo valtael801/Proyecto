@@ -289,6 +289,48 @@ void mostrarCaso4(grafoVuelo* grafo){
     printf("Destino: %s\n", destino);
     printf("La busqueda de ruta optima aun esta en desarrollo.\n");
 }
+
+void subMenuVuelos(grafoVuelo* grafo){
+    char subOpcion = 0;
+
+    do{
+        printf("\n--- GESTION DE VUELOS ---\n");
+        printf("1. Registrar Vuelo\n");
+        printf("2. Visualizar Vuelos Registrados\n");
+        printf("3. Volver al Menu Principal\n");
+        printf("Seleccione una opcion: ");
+
+        if(scanf(" %c", &subOpcion) != 1){
+            subOpcion = '0';
+        }
+
+        switch(subOpcion){
+            case '1': {
+                mostrarCaso2(grafo);
+                break;
+            }
+
+            case '2': {
+                visualizarRed(grafo);
+                break;
+            }
+
+            case '3': {
+                printf("\nVolviendo al menu principal\n");
+                break;
+            }
+
+            default: {
+                printf("\nError: Opcion no valida. Ingrese un numero del 1 al 3.\n");
+            }
+        }
+
+        if(subOpcion != '3'){
+            presioneTeclaParaContinuar();
+        }
+
+    }while(subOpcion != '3');
+}
  
 int main() {
     grafoVuelo* grafo = (grafoVuelo*)malloc(sizeof(grafoVuelo));
@@ -314,7 +356,7 @@ int main() {
                 break;
             }
             case '2': {
-                mostrarCaso2(grafo);
+                subMenuVuelos(grafo);
                 break;
             }
             case '3':{
@@ -330,7 +372,7 @@ int main() {
             default:
                 printf("\nError: Opcion no valida. Ingrese un numero del 1 al 5.\n");
         }
-        if (opcion != '1' && opcion != '5') {
+        if (opcion != '1' && opcion != '2' && opcion != '5') {
             presioneTeclaParaContinuar();
         }
     } while (opcion != '5');
