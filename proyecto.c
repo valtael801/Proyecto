@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tdas/extra.h"
+#include <limits.h>
+#include "TDAs/extra.h"
 #include "TDAs/list.h"
 #include "TDAs/map.h"
 #include "TDAs/heap.h"
@@ -12,7 +13,7 @@ typedef struct vuelo{
     char origen[4];
     char destino[4];
     int duracion;
-    int horaSalida;
+    char horaSalida[6];
 }vuelo;
  
 // Representa "entidades" en el grafo
@@ -31,9 +32,9 @@ typedef struct grafoVuelo{
  
 // Estructura utilizada para empaquetar y devolver el resultado de una búsqueda
 typedef struct Ruta{
-    List* escalasVist; 
     int tiempoTotal;
-    int escalasT;
+    int escalas;
+    List* camino;
 } Ruta;
  
 // Estructura física auxiliar requerida para el algoritmo de Dijkstra
@@ -41,7 +42,7 @@ typedef struct elementoCola{
     char codigoIATA[4];
     int distanciaA;
 }elementoCola;
- 
+
 // Función para que el mapa sepa comparar textos
 int isEqualS(void *key1, void *key2){
     if (strcmp((char*)key1, (char*)key2) == 0) {
@@ -75,7 +76,7 @@ void agregarAeropuerto(grafoVuelo* grafo, char* codigo, char* nombre, char* ciud
 }
  
 // Crea una nueva arista dirigida entre dos vértices
-void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, int horaSalida){
+void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, char* horaSalida){
     aeropuerto* aeroO = buscarAero(grafo, origen);
     aeropuerto* aeroD = buscarAero(grafo, destino);
  
@@ -83,12 +84,17 @@ void agregarVuelo(grafoVuelo* grafo, char* origen, char* destino, int duracion, 
         printf("Error: Aeropuerto NO encontrado.\n");
         return;
     }
+
+    if (duracion <= 0) {
+        printf("Error: La duracion del vuelo debe ser mayor a cero.\n");
+        return;
+    }
  
     vuelo* nuevoVuelo = (vuelo*)malloc(sizeof(vuelo));
     strcpy(nuevoVuelo->origen, origen);
     strcpy(nuevoVuelo->destino, destino);
     nuevoVuelo->duracion = duracion;
-    nuevoVuelo->horaSalida = horaSalida;
+    strcpy(nuevoVuelo->horaSalida, horaSalida);
     list_pushBack(aeroO->lVuelos, nuevoVuelo);
  
     printf("Vuelo registrado con exito.\n");
@@ -146,10 +152,8 @@ void visualizarRed(grafoVuelo* grafo){
         while(vueloActual != NULL){
             int horasDuracion = vueloActual->duracion / 60;
             int minDuracion = vueloActual->duracion % 60;
-            int horaSalidaVista = vueloActual->horaSalida / 100;
-            int minSalidaVista = vueloActual->horaSalida % 100;
 
-            printf(" - Destino: %s | Duracion: %dh %0dm | Salida: %02d:%02d hrs\n", vueloActual->destino, horasDuracion, minDuracion, horaSalidaVista, minSalidaVista);
+            printf(" - Destino: %s | Duracion: %dh %0dm | Salida: %s\n", vueloActual->destino, horasDuracion, minDuracion, vueloActual->horaSalida);
             vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
         }
         printf("----------------------------------------\n");
@@ -190,7 +194,7 @@ void mostrarSubCaso2(grafoVuelo* grafo){
 void mostrarCaso2(grafoVuelo* grafo){
     char origen[4];
     char destino[4];
-    int horarioSalida = 0;
+    char horarioSalida[6];
     int duracionTotal = 0;
  
     int hora = 0;
@@ -207,18 +211,41 @@ void mostrarCaso2(grafoVuelo* grafo){
     printf("Duracion ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
     printf("Ingrese la duracion: ");
     datosLeidos = scanf("%d:%d", &hora, &minuto);
- 
-    if(datosLeidos == 2 || datosLeidos ==1) duracionTotal = (hora * 60) + minuto;
-    else printf("Error de formato.\n");
+
+    if(datosLeidos != 1 && datosLeidos != 2) {
+        printf("Error: Formato de duracion invalido.\n");
+        return;
+    }
+
+    if(hora < 0 || minuto < 0 || minuto > 59) {
+        printf("Error: Duracion invalida.\n");
+        return;
+    }
+
+    duracionTotal = (hora * 60) + minuto;
+
+    if(duracionTotal <= 0) {
+        printf("Error: La duracion del vuelo debe ser mayor a cero.\n");
+        return;
+    }
  
     printf("Horario de salida ej: hora exacta -> 12 || hora+minutos -> 12:45\n");
     printf("Ingrese el horario de salida: ");
     hora = minuto = 0;
     datosLeidos = scanf("%d:%d", &hora, &minuto);
- 
-    if(datosLeidos == 2 || datosLeidos ==1) horarioSalida = (hora * 100) + minuto;
-    else printf("Error de formato.\n");
- 
+
+    if(datosLeidos != 1 && datosLeidos != 2) {
+        printf("Error: Formato de horario invalido.\n");
+        return;
+    }
+
+    if(hora < 0 || hora > 23 || minuto < 0 || minuto > 59) {
+        printf("Error: Horario de salida invalido.\n");
+        return;
+    }
+
+    sprintf(horarioSalida, "%02d:%02d", hora, minuto);
+
     agregarVuelo(grafo, origen, destino, duracionTotal, horarioSalida);
 }
 
@@ -257,6 +284,230 @@ void subMenuAero(grafoVuelo* grafo){
         if (subOpcion != '4') presioneTeclaParaContinuar();
     }while (subOpcion != '4');
 }
+
+Ruta* buscarRutaOptima(grafoVuelo* grafo, char* origen, char* destino) {
+    Map* distancias = map_create(isEqualS);
+    Map* anteriores = map_create(isEqualS);
+    Heap* colaDijkstra = heap_create();
+
+    MapPair* parActual = map_first(grafo->aeropuertos);
+
+    // Inicializar las distancias de todos los aeropuertos como infinitas.
+    while (parActual != NULL) {
+        aeropuerto* aeroActual = (aeropuerto*)parActual->value;
+
+        int* distancia = (int*)malloc(sizeof(int));
+        *distancia = INT_MAX;
+
+        map_insert(distancias, aeroActual->codigo, distancia);
+        map_insert(anteriores, aeroActual->codigo, NULL);
+
+        parActual = map_next(grafo->aeropuertos);
+    }
+
+    // La distancia desde el origen hacia sí mismo es 0.
+    MapPair* distanciaOrigen = map_search(distancias, origen);
+    *((int*)distanciaOrigen->value) = 0;
+
+    elementoCola* inicio = (elementoCola*)malloc(sizeof(elementoCola));
+    strcpy(inicio->codigoIATA, origen);
+    inicio->distanciaA = 0;
+
+    heap_push(colaDijkstra, inicio, 0);
+
+    // Mientras queden aeropuertos pendientes en la cola.
+    while (heap_top(colaDijkstra) != NULL) {
+        elementoCola* elementoActual =
+            (elementoCola*)heap_top(colaDijkstra);
+
+        heap_pop(colaDijkstra);
+
+        aeropuerto* aeroActual =
+            buscarAero(grafo, elementoActual->codigoIATA);
+
+        MapPair* distanciaActualPar =
+            map_search(distancias, elementoActual->codigoIATA);
+
+        int distanciaActual = *((int*)distanciaActualPar->value);
+
+        // Ignorar entradas antiguas de la cola.
+        if (elementoActual->distanciaA > distanciaActual) {
+            free(elementoActual);
+            continue;
+        }
+
+        vuelo* vueloActual = (vuelo*)list_first(aeroActual->lVuelos);
+
+        while (vueloActual != NULL) {
+            MapPair* distanciaDestinoPar =
+                map_search(distancias, vueloActual->destino);
+
+            int* distanciaDestino =
+                (int*)distanciaDestinoPar->value;
+
+            int nuevaDistancia =
+                distanciaActual + vueloActual->duracion;
+
+            if (nuevaDistancia < *distanciaDestino) {
+                *distanciaDestino = nuevaDistancia;
+
+                MapPair* anteriorDestino =
+                    map_search(anteriores, vueloActual->destino);
+
+                anteriorDestino->value = aeroActual->codigo;
+
+                elementoCola* nuevoElemento =
+                    (elementoCola*)malloc(sizeof(elementoCola));
+
+                strcpy(nuevoElemento->codigoIATA,
+                       vueloActual->destino);
+
+                nuevoElemento->distanciaA = nuevaDistancia;
+
+                heap_push(
+                    colaDijkstra,
+                    nuevoElemento,
+                    nuevaDistancia
+                );
+            }
+
+            vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
+        }
+
+        free(elementoActual);
+    }
+
+    MapPair* distanciaFinalPar = map_search(distancias, destino);
+    int distanciaFinal = *((int*)distanciaFinalPar->value);
+
+    if (distanciaFinal == INT_MAX) {
+        return NULL;
+    }
+
+    Ruta* ruta = (Ruta*)malloc(sizeof(Ruta));
+    ruta->camino = list_create();
+    ruta->tiempoTotal = distanciaFinal;
+
+    char* codigoActual = destino;
+
+    while (codigoActual != NULL) {
+        aeropuerto* aeroCamino = buscarAero(grafo, codigoActual);
+
+        list_pushFront(ruta->camino, aeroCamino->codigo);
+
+        if (strcmp(codigoActual, origen) == 0) {
+            break;
+        }
+
+        MapPair* anteriorActual =
+            map_search(anteriores, codigoActual);
+
+        if (anteriorActual == NULL ||
+            anteriorActual->value == NULL) {
+            return NULL;
+        }
+
+        codigoActual = (char*)anteriorActual->value;
+    }
+
+    ruta->escalas = list_size(ruta->camino) - 2;
+
+    if (ruta->escalas < 0) {
+        ruta->escalas = 0;
+    }
+
+    return ruta;
+}
+
+void mostrarCaso4(grafoVuelo* grafo) {
+    char origen[4];
+    char destino[4];
+
+    printf("\n--- BUSCAR RUTA OPTIMA ---\n");
+
+    printf("Ingrese codigo IATA de origen: ");
+    scanf("%3s", origen);
+
+    printf("Ingrese codigo IATA de destino: ");
+    scanf("%3s", destino);
+
+    aeropuerto* aeroOrigen = buscarAero(grafo, origen);
+    aeropuerto* aeroDestino = buscarAero(grafo, destino);
+
+    if (aeroOrigen == NULL || aeroDestino == NULL) {
+        printf("Error: Aeropuerto no encontrado.\n");
+        return;
+    }
+
+    Ruta* ruta = buscarRutaOptima(grafo, origen, destino);
+
+    if (ruta == NULL) {
+        printf("No existe una ruta disponible entre los aeropuertos seleccionados.\n");
+        return;
+    }
+
+    printf("\nRuta encontrada: ");
+
+    char* codigoActual = (char*)list_first(ruta->camino);
+
+    while (codigoActual != NULL) {
+        printf("%s", codigoActual);
+
+        codigoActual = (char*)list_next(ruta->camino);
+
+        if (codigoActual != NULL) {
+            printf(" -> ");
+        }
+    }
+
+    int horas = ruta->tiempoTotal / 60;
+    int minutos = ruta->tiempoTotal % 60;
+
+    printf("\nTiempo total: %dh %02dm\n", horas, minutos);
+    printf("Escalas: %d\n", ruta->escalas);
+}
+
+void subMenuVuelos(grafoVuelo* grafo){
+    char subOpcion = 0;
+
+    do{
+        printf("\n--- GESTION DE VUELOS ---\n");
+        printf("1. Registrar Vuelo\n");
+        printf("2. Visualizar Vuelos Registrados\n");
+        printf("3. Volver al Menu Principal\n");
+        printf("Seleccione una opcion: ");
+
+        if(scanf(" %c", &subOpcion) != 1){
+            subOpcion = '0';
+        }
+
+        switch(subOpcion){
+            case '1': {
+                mostrarCaso2(grafo);
+                break;
+            }
+
+            case '2': {
+                visualizarRed(grafo);
+                break;
+            }
+
+            case '3': {
+                printf("\nVolviendo al menu principal\n");
+                break;
+            }
+
+            default: {
+                printf("\nError: Opcion no valida. Ingrese un numero del 1 al 3.\n");
+            }
+        }
+
+        if(subOpcion != '3'){
+            presioneTeclaParaContinuar();
+        }
+
+    }while(subOpcion != '3');
+}
  
 int main() {
     grafoVuelo* grafo = (grafoVuelo*)malloc(sizeof(grafoVuelo));
@@ -266,10 +517,10 @@ int main() {
         printf("\n========================================\n");
         printf("    SISTEMA DE GESTION DE VUELOS        \n");
         printf("========================================\n");
-        printf("1. Aeropuerto\n");
-        printf("2. Agregar Vuelo\n");
-        printf("3. Visualizar Red\n");
-        printf("4. Buscar Ruta Optima\n");
+        printf("1. Gestionar Aeropuertos\n");
+        printf("2. Gestionar Vuelos\n");
+        printf("3. Buscar Ruta Optima\n");
+        printf("4. Visualizar Red de Vuelos\n");
         printf("5. Salir\n");
         printf("========================================\n");
         printf("Seleccione una opcion: ");
@@ -282,21 +533,23 @@ int main() {
                 break;
             }
             case '2': {
-                mostrarCaso2(grafo);
+                subMenuVuelos(grafo);
                 break;
             }
             case '3':{
+                mostrarCaso4(grafo);
+                break;
+            }
+            case '4':{
                 visualizarRed(grafo);
                 break;
             }
-            case '4':
-                break;
             case '5':
                 break;
             default:
                 printf("\nError: Opcion no valida. Ingrese un numero del 1 al 5.\n");
         }
-        if (opcion != '1' && opcion != '5') {
+        if (opcion != '1' && opcion != '2' && opcion != '5') {
             presioneTeclaParaContinuar();
         }
     } while (opcion != '5');
