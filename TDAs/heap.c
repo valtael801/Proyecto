@@ -22,47 +22,80 @@ void* heap_top(Heap* pq){
     return pq->heapArray[0].data;
 }
 
-void heap_push(Heap* pq, void* data, int priority){
+void heap_push(Heap* pq, void* data, int priority) {
 
-    if(pq->size+1>pq->capac){
-        //printf("se expande de %i a ", pq->capac);
-        pq->capac=(pq->capac)*2+1;
-        //printf("%i * %lu", pq->capac, sizeof(heapElem));
-        pq->heapArray=realloc(pq->heapArray, (pq->capac)*sizeof(heapElem));
+    if (pq->size + 1 > pq->capac) {
+        pq->capac = pq->capac * 2 + 1;
+        pq->heapArray = realloc(
+            pq->heapArray,
+            pq->capac * sizeof(heapElem)
+        );
     }
 
-    /*FlotaciÃ³n*/
-    int now = pq->size;
-    while(now>0 && pq->heapArray[(now-1)/2].priority < priority)
-        {
-                pq->heapArray[now] = pq->heapArray[(now-1)/2];
-                now = (now -1)/2;
-        }
-    pq->heapArray[now].priority = priority;
-    pq->heapArray[now].data = data;
+    int posicion = pq->size;
+
+    // Mientras la prioridad nueva sea menor que la del padre,
+    // el elemento sube dentro del Min Heap.
+    while (posicion > 0 &&
+           pq->heapArray[(posicion - 1) / 2].priority > priority) {
+
+        pq->heapArray[posicion] =
+            pq->heapArray[(posicion - 1) / 2];
+
+        posicion = (posicion - 1) / 2;
+    }
+
+    pq->heapArray[posicion].priority = priority;
+    pq->heapArray[posicion].data = data;
     pq->size++;
 }
 
 
-void heap_pop(Heap* pq){
+void heap_pop(Heap* pq) {
 
-        pq->size--;
-        pq->heapArray[0] = pq->heapArray[pq->size];
-        int priority=pq->heapArray[0].priority;
+    if (pq == NULL || pq->size == 0) {
+        return;
+    }
 
+    pq->size--;
 
-        int now = 1;
+    if (pq->size == 0) {
+        return;
+    }
 
-        while((now<=pq->size && pq->heapArray[now].priority > priority) || (now+1<=pq->size && pq->heapArray[now+1].priority > priority)){
-          heapElem tmp=pq->heapArray[(now-1)/2];
-          if(now+1<=pq->size && pq->heapArray[now].priority < pq->heapArray[now+1].priority) now++;
+    pq->heapArray[0] = pq->heapArray[pq->size];
 
-          pq->heapArray[(now-1)/2]=pq->heapArray[now];
-          pq->heapArray[now]=tmp;
+    int actual = 0;
 
-          now = now * 2 + 1;
+    while (1) {
+        int izquierdo = 2 * actual + 1;
+        int derecho = 2 * actual + 2;
+        int menor = actual;
+
+        if (izquierdo < pq->size &&
+            pq->heapArray[izquierdo].priority <
+            pq->heapArray[menor].priority) {
+
+            menor = izquierdo;
         }
-        //printf("size = %i, top = %i\n", pq->size, pq->heapArray[0].data );
+
+        if (derecho < pq->size &&
+            pq->heapArray[derecho].priority <
+            pq->heapArray[menor].priority) {
+
+            menor = derecho;
+        }
+
+        if (menor == actual) {
+            break;
+        }
+
+        heapElem auxiliar = pq->heapArray[actual];
+        pq->heapArray[actual] = pq->heapArray[menor];
+        pq->heapArray[menor] = auxiliar;
+
+        actual = menor;
+    }
 }
 
 Heap* heap_create(){
