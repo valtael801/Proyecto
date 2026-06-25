@@ -168,7 +168,7 @@ void mostrarSubCaso1(grafoVuelo* grafo){
     char pais[50];
  
     printf("\n--- REGISTRAR NUEVO AEROPUERTO ---\n");
-    printf("Ingrese código IATA (3 letras ej: SCL, BOG): ");
+    printf("Ingrese codigo IATA (3 letras ej: SCL, BOG): ");
     scanf("%3s", codigo);   
  
     printf("Ingrese nombre del aeropuerto: ");
