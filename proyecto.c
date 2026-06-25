@@ -419,6 +419,18 @@ Ruta* buscarRutaOptima(grafoVuelo* grafo, char* origen, char* destino) {
     return ruta;
 }
 
+void liberarRuta(Ruta* ruta) {
+    if (ruta == NULL) return;
+
+    if (ruta->camino != NULL) {
+        list_clean(ruta->camino);
+        free(ruta->camino);
+    }
+
+    free(ruta);
+}
+
+
 void mostrarCaso4(grafoVuelo* grafo) {
     char origen[4];
     char destino[4];
@@ -465,6 +477,9 @@ void mostrarCaso4(grafoVuelo* grafo) {
 
     printf("\nTiempo total: %dh %02dm\n", horas, minutos);
     printf("Escalas: %d\n", ruta->escalas);
+
+    liberarRuta(ruta);
+
 }
 
 void subMenuVuelos(grafoVuelo* grafo){
@@ -508,7 +523,38 @@ void subMenuVuelos(grafoVuelo* grafo){
 
     }while(subOpcion != '3');
 }
- 
+
+void liberarGrafo(grafoVuelo* grafo) {
+    if (grafo == NULL) return;
+
+    MapPair* parActual = map_first(grafo->aeropuertos);
+
+    while (parActual != NULL) {
+        aeropuerto* aeroActual = (aeropuerto*)parActual->value;
+
+        if (aeroActual != NULL) {
+            vuelo* vueloActual = (vuelo*)list_first(aeroActual->lVuelos);
+
+            while (vueloActual != NULL) {
+                free(vueloActual);
+                vueloActual = (vuelo*)list_next(aeroActual->lVuelos);
+            }
+
+            list_clean(aeroActual->lVuelos);
+            free(aeroActual->lVuelos);
+            free(aeroActual);
+        }
+
+        MapPair* parLiberar = parActual;
+        parActual = map_next(grafo->aeropuertos);
+        free(parLiberar);
+    }
+
+    map_clean(grafo->aeropuertos);
+    free(grafo->aeropuertos);
+    free(grafo);
+}
+
 int main() {
     grafoVuelo* grafo = (grafoVuelo*)malloc(sizeof(grafoVuelo));
     grafo->aeropuertos = map_create(isEqualS);
@@ -553,5 +599,8 @@ int main() {
             presioneTeclaParaContinuar();
         }
     } while (opcion != '5');
+
+    liberarGrafo(grafo);
+
     return 0;
 }
